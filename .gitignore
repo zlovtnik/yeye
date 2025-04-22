@@ -1,0 +1,121 @@
+# Scala specific
+*.class
+*.log
+*.ctxt
+.metals/
+.bloop/
+.metals.sbt
+project/metals.sbt
+project/project/
+project/target/
+target/
+lib_managed/
+src_managed/
+app_managed/
+dist/
+.cache
+.history
+.lib/
+.cache-main
+.cache-tests
+
+# SBT specific
+.DS_Store
+.sbt/
+project/target/
+project/project/
+project/.bloop/
+project/.metals/
+project/.bsp/
+.cache
+.history
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+app_managed/
+.cache-main
+.cache-tests
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+out/
+.idea_modules/
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# IDE - Cursor
+.cursor/
+
+# IDE - Eclipse
+.settings/
+.classpath
+.project
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build output
+dist/
+build/
+out/
+target/
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock 

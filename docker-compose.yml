@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free
+    container_name: yeye-oracle
+    environment:
+      - ORACLE_SID=FREE
+      - ORACLE_PDB=FREEPDB1
+      - ORACLE_PWD=ora
+      - INIT_SGA_SIZE=2000
+      - INIT_PGA_SIZE=500
+      - ORACLE_EDITION=developer
+      - ENABLE_ARCHIVELOG=false
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    networks:
+      - yeye-network
+
+volumes:
+  oracle-data:
+    name: yeye-oracle-data
+
+networks:
+  yeye-network:
+    name: yeye-network 
