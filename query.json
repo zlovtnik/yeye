@@ -1,0 +1,4 @@
+{
+    "query": "query { users { id email firstName lastName status created lastUpdated } }",
+    "variables": {}
+}
