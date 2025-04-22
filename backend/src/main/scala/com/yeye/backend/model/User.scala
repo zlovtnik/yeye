@@ -1,17 +1,9 @@
 package com.yeye.backend.model
 
-import zio.json.*
+import com.yeye.shared.User
+import caliban.schema.{Schema, SchemaDerivation}
+import caliban.schema.ArgBuilder
 
-case class User(
-    id: String,
-    email: String,
-    firstName: String,
-    lastName: String,
-    status: String,
-    created: Long,
-    lastUpdated: Long
-)
-
-object User:
-  given JsonEncoder[User] = DeriveJsonEncoder.gen[User]
-  given JsonDecoder[User] = DeriveJsonDecoder.gen[User]
+object UserModel:
+  given [R]: Schema[R, User] = Schema.gen[R, User]
+  given ArgBuilder[User] = ArgBuilder.gen[User]

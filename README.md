@@ -78,7 +78,25 @@ sbt update
 sbt 'devServer/runMain com.yeye.devserver.DevServer'
 ```
 
-Acesse a aplicação em: http://localhost:8080/index.html
+O servidor estará disponível em:
+- Interface Web: http://localhost:8080/index.html
+- API REST: http://localhost:8080/
+- GraphQL Endpoint: http://localhost:8080/api/graphql
+
+## API Endpoints
+
+### REST API
+- `GET /processes` - Lista todos os processos
+- `GET /users` - Lista todos os usuários
+- `GET /users/:id` - Obtém um usuário específico
+- `POST /users` - Cria um novo usuário
+- `PUT /users/:id` - Atualiza um usuário existente
+- `DELETE /users/:id` - Remove um usuário
+
+### GraphQL API
+- Endpoint: `/api/graphql`
+- Método: POST
+- Content-Type: application/json
 
 ## Estrutura do Projeto
 
@@ -101,6 +119,7 @@ yeye/
 - Gerenciamento de processos
 - Interface web responsiva
 - API GraphQL
+- API REST
 - Comunicação em tempo real (se necessário)
 
 ## Tecnologias Principais
