@@ -1,0 +1,15 @@
+{
+    "name": "yeye",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "bun --bun run frontend/src/main/js/index.js",
+        "test": "bun --bun test frontend/src/test/js/runner.test.js"
+    },
+    "dependencies": {
+        "@types/node": "latest"
+    },
+    "devDependencies": {
+        "bun-types": "latest"
+    }
+}

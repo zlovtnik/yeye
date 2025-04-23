@@ -129,7 +129,7 @@ podman run -d --name backend-1 --network yeye-network \
   -e DB_URL=jdbc:oracle:thin:@//oracle:1521/FREE \
   -e DB_USER=system \
   -e DB_PASSWORD=ora \
-  -p 8081:8081 \
+  -p 8080:8080 \
   yeye-backend
 
 # Instance 2
@@ -137,7 +137,7 @@ podman run -d --name backend-2 --network yeye-network \
   -e DB_URL=jdbc:oracle:thin:@//oracle:1521/FREE \
   -e DB_USER=system \
   -e DB_PASSWORD=ora \
-  -p 8082:8081 \
+  -p 8082:8080 \
   yeye-backend
 ```
 

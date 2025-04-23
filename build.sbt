@@ -41,14 +41,23 @@ lazy val shared = project
 // Backend module
 lazy val backend = project
   .in(file("backend"))
+  .enablePlugins(RevolverPlugin)
   .settings(commonSettings)
   .settings(
     name := "yeye-backend",
     assembly / mainClass := Some("com.yeye.backend.Server"),
     assembly / assemblyJarName := "backend.jar",
+    Revolver.enableDebugging(port = 5050, suspend = false),
+    reStart / mainClass := Some("com.yeye.backend.Server"),
+    reStart / javaOptions ++= Seq(
+      "-Dlogback.configurationFile=logback.xml",
+      "-Xmx1G"
+    ),
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % "2.0.21",
       "dev.zio" %% "zio-http" % "3.0.0-RC4",
+      "dev.zio" %% "zio-test" % "2.0.21" % Test,
+      "dev.zio" %% "zio-test-sbt" % "2.0.21" % Test,
       "io.getquill" %% "quill-jdbc-zio" % "4.8.0",
       "io.getquill" %% "quill-jdbc" % "4.8.0",
       "com.oracle.database.jdbc" % "ojdbc11" % "23.3.0.23.09",
@@ -57,7 +66,8 @@ lazy val backend = project
       "ch.qos.logback" % "logback-classic" % "1.4.11",
       "com.github.ghostdogpr" %% "caliban" % "2.5.1",
       "com.github.ghostdogpr" %% "caliban-zio-http" % "2.5.1"
-    )
+    ),
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   )
   .dependsOn(shared)
 
@@ -72,19 +82,34 @@ lazy val frontend = project
     // Add verbose logging for Scala.js
     scalaJSLinkerConfig ~= { _.withSourceMap(true) },
     scalaJSLinkerConfig ~= { _.withPrettyPrint(true) },
+    // Explicitly disable Closure Compiler
     scalaJSLinkerConfig ~= { _.withClosureCompiler(false) },
+    // Set optimization level to simple
+    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
     // Add logging for the build process
     logLevel := Level.Debug,
     // Set the output directory for compiled files
-    Compile / fastLinkJS / scalaJSLinkerOutputDirectory := (ThisBuild / baseDirectory).value / "frontend" / "dist",
-    Compile / fullLinkJS / scalaJSLinkerOutputDirectory := (ThisBuild / baseDirectory).value / "frontend" / "dist",
+    Compile / fastLinkJS / scalaJSLinkerOutputDirectory := (ThisBuild / baseDirectory).value / "dist",
+    Compile / fullLinkJS / scalaJSLinkerOutputDirectory := (ThisBuild / baseDirectory).value / "dist",
+    // Enable hot reloading for frontend
+    Compile / fastLinkJS / watchSources ++= (Compile / unmanagedSourceDirectories).value,
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "16.0.0",
-      "dev.zio" %%% "zio-json" % "0.6.2"
+      "dev.zio" %%% "zio-json" % "0.6.2",
+      "com.lihaoyi" %%% "utest" % "0.8.1" % Test,
+      "org.scala-js" %%% "scalajs-dom" % "2.7.0"
     ),
-    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    Test / scalaJSLinkerConfig ~= {
       _.withModuleKind(ModuleKind.ESModule)
-    }
+        .withSourceMap(true)
+        .withModuleSplitStyle(
+          org.scalajs.linker.interface.ModuleSplitStyle
+            .SmallModulesFor(List("com.yeye"))
+        )
+    },
+    Test / scalaJSUseMainModuleInitializer := false,
+    Test / scalaJSUseTestModuleInitializer := true
   )
   .dependsOn(shared)
 
@@ -95,8 +120,16 @@ lazy val devServer = project
   .settings(
     name := "yeye-dev-server",
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-http" % "3.0.0-RC2",
+      "dev.zio" %% "zio-http" % "3.0.0-RC4",
       "dev.zio" %% "zio-logging" % "2.2.1"
+    ),
+    // Configure Bun for development server
+    run / fork := true,
+    run / javaOptions += "-Dscalajs.bun=true",
+    // Add Bun-specific settings
+    run / envVars := Map(
+      "NODE_ENV" -> "development",
+      "BUN_JS_RUNTIME" -> "true"
     )
   )
   .dependsOn(frontend)
@@ -107,5 +140,9 @@ lazy val root = project
   .aggregate(backend, frontend, shared, devServer)
   .settings(
     name := "yeye",
-    logLevel := Level.Debug
+    logLevel := Level.Debug,
+    // Add commands for development
+    addCommandAlias("dev", ";frontend/fastLinkJS; backend/reStart"),
+    addCommandAlias("devFrontend", "~frontend/fastLinkJS"),
+    addCommandAlias("devBackend", "~backend/reStart")
   )

@@ -11,3 +11,15 @@ case class User(
     created: Long,
     lastUpdated: Long
 ) derives JsonCodec
+
+object User {
+  def empty: User = User(
+    id = "",
+    email = "",
+    firstName = "",
+    lastName = "",
+    status = "",
+    created = 0,
+    lastUpdated = 0
+  )
+}

@@ -33,8 +33,8 @@ WORKDIR /app
 # Copy the built JAR from the build stage
 COPY --from=build /app/backend/target/scala-3.3.1/backend.jar ./app.jar
 
-# Expose port 8081
-EXPOSE 8081
+# Expose port 8080
+EXPOSE 8080
 
 # Start the application
 CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"] 
