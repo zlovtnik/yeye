@@ -59,6 +59,7 @@ graph TD
 - JDK 11 or higher
 - SBT (Scala Build Tool) 1.10.11 or higher
 - Podman (for containerized deployment)
+- SQL schemas in `/Users/rafaelcardoso/git/db-sample-schemas` directory
 
 ## Environment Setup
 
@@ -87,10 +88,21 @@ The server will be available at:
 ## Containerized Deployment with Podman
 
 ### Single Instance Deployment
-1. Build and start the services:
+1. Ensure your SQL schemas are in the correct directory:
+```bash
+# The schemas should be in this directory
+ls /Users/rafaelcardoso/git/db-sample-schemas/*.sql
+```
+
+2. Build and start the services:
 ```bash
 podman compose -f docker/docker-compose.yml up
 ```
+
+The Oracle container will:
+- Start the database
+- Execute all SQL files from the schemas directory
+- Make the database available for the application
 
 ### Replicated Deployment
 To run multiple instances of the application:
@@ -106,6 +118,7 @@ podman run -d --name oracle --network yeye-network \
   -e ORACLE_PASSWORD=ora \
   -e APP_USER=system \
   -e APP_USER_PASSWORD=ora \
+  -v /Users/rafaelcardoso/git/db-sample-schemas:/opt/oracle/schemas \
   gvenzl/oracle-free:latest
 ```
 

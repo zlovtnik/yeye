@@ -1,0 +1,24 @@
+# Oracle Database initialization parameters
+db_name=FREE
+db_unique_name=FREE
+db_domain=localdomain
+db_block_size=8192
+db_files=200
+db_file_multiblock_read_count=16
+db_create_file_dest=/opt/oracle/oradata
+db_recovery_file_dest=/opt/oracle/oradata
+db_recovery_file_dest_size=2G
+control_files=(/opt/oracle/oradata/FREE/control01.ctl)
+compatible=23.0.0
+sga_target=1024M
+pga_aggregate_target=512M
+processes=300
+sessions=335
+transactions=500
+open_cursors=300
+undo_tablespace=UNDOTBS1
+remote_login_passwordfile=EXCLUSIVE
+audit_trail=db
+audit_file_dest=/opt/oracle/admin/FREE/adump
+diagnostic_dest=/opt/oracle
+enable_pluggable_database=true 

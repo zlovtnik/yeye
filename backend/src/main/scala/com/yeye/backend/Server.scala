@@ -6,8 +6,7 @@ import zio.json.*
 import com.yeye.shared.User
 import com.yeye.backend.repository.UserRepository
 import com.yeye.backend.config.DatabaseConfig.{context, dataSourceLayer}
-import com.yeye.backend.http.GraphQLServer
-import com.yeye.backend.graphql.Schema
+import com.yeye.backend.graphql.RawGraphQL
 import io.getquill.*
 import javax.sql.DataSource
 import java.io.File
@@ -75,19 +74,16 @@ object Server extends ZIOAppDefault:
     Method.GET / "assets" / "**" -> staticHandler
   )
 
-  /** GraphQL request handler that:
-    *   1. Extracts the request body 2. Creates a GraphQL interpreter 3.
-    *      Executes the query 4. Returns the result as JSON Returns 500 Internal
-    *      Server Error if execution fails
+  /** GraphQL request handler that processes raw GraphQL requests.
     */
   val graphQLHandler = Handler.fromFunctionZIO { (request: Request) =>
     (for
       body <- request.body.asString
-      interpreter <- Schema.api.interpreter
-      result <- interpreter.execute(body)
-    yield Response.json(result.toString)).catchAll { error =>
+      request <- ZIO.fromEither(body.fromJson[RawGraphQL.GraphQLRequest])
+      response <- RawGraphQL.handleRequest(request)
+    yield Response.json(response.toJson)).catchAll { error =>
       ZIO.succeed(
-        Response.text(error.getMessage).status(Status.InternalServerError)
+        Response.text(error.toString).status(Status.InternalServerError)
       )
     }
   }
