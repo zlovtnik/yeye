@@ -51,9 +51,47 @@ The backend is built with:
 ### Frontend
 
 The frontend is built with:
-- Scala.js
-- Laminar for reactive UI (Assumed, verify if correct)
-- Scala.js DOM for browser interaction (Assumed, verify if correct)
+- Scala.js for compiling Scala to JavaScript
+- Laminar for reactive UI programming
+- Circe for JSON handling
+- ZIO for effect management
+- Cats for functional programming
+
+#### Frontend Structure
+
+The frontend follows a modular architecture for scalability:
+
+```
+frontend/src/main/scala/com/yeye/frontend/
+├── Main.scala                 # Application entry point
+├── Router.scala               # Page routing and navigation
+│
+├── core/                      # Core utilities
+│   ├── Config.scala           # API configuration
+│   └── Style.scala            # Global styling
+│
+├── models/                    # Data models
+│   └── User.scala             # Example: User data type
+│
+├── pages/                     # Page components
+│   ├── LandingPage.scala      # Home page
+│   └── users/                 # User management
+│       └── UsersPage.scala    # Users list and CRUD
+│
+├── components/                # Reusable UI components
+│   ├── layout/                # Structural components
+│   │   └── BurgerMenu.scala   # Side navigation
+│   └── common/                # Generic components
+└── services/                  # API services
+```
+
+#### UI Features
+
+- **Theme**: Dark green and purple color scheme
+- **Navigation**: Collapsible side menu with hover expansion
+- **Landing Page**: Welcome screen with feature highlights
+- **Users Page**: CRUD interface for user management
+- **Responsive Design**: Adapts to different screen sizes
 
 ## REST API
 
@@ -78,6 +116,38 @@ The backend exposes a REST API at `http://localhost:8080`.
         *   Response: `200 OK` with updated user object or `404 Not Found`.
     *   `DELETE /users/{id}`: Deletes a user by ID.
         *   Response: `204 No Content` or `404 Not Found`.
+
+## Troubleshooting
+
+### API Connection Issues
+
+If you're experiencing issues connecting to the backend API:
+
+1. **Check Backend Status**: Ensure the backend server is running (`sbt backend/run`)
+2. **Verify Endpoints**: The frontend expects REST endpoints at `http://localhost:8080/users`
+3. **Configuration**: Check `frontend/src/main/scala/com/yeye/frontend/core/Config.scala` to adjust API URL settings
+4. **Debug Mode**: Use browser console debugging functions:
+   ```javascript
+   // Try different backend ports
+   Config.fetchFromPort(0) // Try port 8080
+   Config.fetchFromPort(1) // Try port 3000
+   ```
+
+### Browser Console Errors
+
+- **404 Not Found**: Backend server may not be running, or endpoint path is incorrect
+- **CORS Errors**: Backend might need CORS headers to allow frontend requests
+- **Decode Errors**: Check that your data models match the API response format
+
+## Future Improvements
+
+Planned enhancements for the project:
+
+- Additional entity types beyond Users
+- Authentication and authorization
+- Enhanced filtering and sorting capabilities
+- Dashboard with data visualization
+- PDF report generation
 
 ## License
 

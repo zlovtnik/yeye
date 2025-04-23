@@ -5,6 +5,7 @@ enablePlugins(ScalaJSPlugin)
 
 libraryDependencies ++= Seq(
   "com.raquo" %%% "laminar" % "16.0.0",
+  "com.raquo" %%% "waypoint" % "7.0.0",
   "org.scala-js" %%% "scalajs-dom" % "2.8.0",
   "com.lihaoyi" %%% "upickle" % "3.1.3",
   "io.circe" %%% "circe-core" % "0.14.6",

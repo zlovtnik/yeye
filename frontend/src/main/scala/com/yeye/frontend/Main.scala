@@ -6,6 +6,8 @@ import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.yeye.frontend.components.layout.BurgerMenu
+import com.yeye.frontend.core.Style
 
 case class User(id: Long, name: String, email: String)
 
@@ -16,10 +18,35 @@ case class User(id: Long, name: String, email: String)
   */
 object Main:
   def main(args: Array[String]): Unit =
+    // Initialize styles
+    Style.init()
+
     val containerNode = dom.document.querySelector("#app")
     render(containerNode, app)
 
   def app: Div = {
+    // Page routing
+    val currentPage = Router.currentPageSignal
+
+    div(
+      cls := "app-container",
+
+      // Side menu
+      BurgerMenu(
+        currentPage,
+        Router.navigateTo
+      ),
+
+      // Main content area
+      div(
+        cls := "content-container",
+        child <-- currentPage.map(Router.renderPage)
+      )
+    )
+  }
+
+  // Keep the user-related code for reference, to be moved to UsersPage later
+  def oldUserApp: Div = {
     val users = Var(List.empty[User])
     val nameVar = Var("")
     val emailVar = Var("")
@@ -89,17 +116,10 @@ object Main:
     }
 
     div(
-      cls := "container mx-auto p-4",
-      h1(
-        cls := "text-3xl font-bold mb-4",
-        "User Management"
-      ),
+      h1("User Management"),
       div(
-        cls := "mb-4",
         div(
-          cls := "flex gap-2",
           input(
-            cls := "border p-2 rounded",
             placeholder := "Name",
             controlled(
               value <-- nameVar,
@@ -107,7 +127,6 @@ object Main:
             )
           ),
           input(
-            cls := "border p-2 rounded",
             placeholder := "Email",
             controlled(
               value <-- emailVar,
@@ -115,26 +134,17 @@ object Main:
             )
           ),
           button(
-            cls := "bg-blue-500 text-white px-4 py-2 rounded",
             "Add User",
             onClick --> (_ => createUser())
           )
         )
       ),
       div(
-        cls := "grid grid-cols-1 gap-4",
         children <-- users.signal.map { userList =>
           userList.map { user =>
             div(
-              cls := "border p-4 rounded",
-              div(
-                cls := "font-bold",
-                user.name
-              ),
-              div(
-                cls := "text-gray-600",
-                user.email
-              )
+              div(user.name),
+              div(user.email)
             )
           }
         }
