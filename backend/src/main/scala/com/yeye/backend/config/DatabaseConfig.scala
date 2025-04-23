@@ -1,26 +1,28 @@
 package com.yeye.backend.config
 
-import zio.*
+import cats.effect.{IO, Resource}
+import com.typesafe.config.ConfigFactory
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
-import io.getquill.*
-import io.getquill.context.ZioJdbc.DataSourceLayer
-import io.getquill.context.jdbc.JdbcContext
-import io.getquill.jdbczio.Quill
-import io.getquill.OracleDialect
 
-/** Database configuration and setup for the application.
-  *
-  * This object provides:
-  *   - DataSource layer configuration
-  *   - Quill context for Oracle database
+/** Database configuration for the application.
   */
 object DatabaseConfig:
-  /** DataSource layer configured from the "oracle" prefix in application.conf.
-    * Provides database connection pooling and management.
-    */
-  val dataSourceLayer = Quill.DataSource.fromPrefix("oracle")
+  private val config = ConfigFactory.load()
 
-  /** Quill context for Oracle database operations. Uses snake_case naming
-    * convention for database columns.
+  /** HikariCP data source configuration for Oracle database.
     */
-  object context extends OracleZioJdbcContext(SnakeCase)
+  private val hikariConfig = new HikariConfig()
+  hikariConfig.setJdbcUrl(config.getString("db.url"))
+  hikariConfig.setUsername(config.getString("db.user"))
+  hikariConfig.setPassword(config.getString("db.password"))
+  hikariConfig.setDriverClassName("oracle.jdbc.OracleDriver")
+  hikariConfig.setMaximumPoolSize(10)
+  hikariConfig.setMinimumIdle(5)
+
+  /** HikariCP data source for Oracle database operations.
+    */
+  val dataSource: Resource[IO, DataSource] =
+    Resource.make(IO(new HikariDataSource(hikariConfig)))(ds =>
+      IO(ds.asInstanceOf[HikariDataSource].close())
+    )

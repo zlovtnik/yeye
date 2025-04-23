@@ -1,111 +1,59 @@
 package com.yeye.devserver
 
-import zio.*
-import zio.http.*
+import cats.effect.{IO, IOApp, ExitCode}
+import cats.syntax.all.*
+import org.http4s.HttpRoutes
+import org.http4s.dsl.Http4sDsl
+import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.server.Router
+import org.http4s.implicits.*
+import com.comcast.ip4s.*
+import org.http4s.StaticFile
 import java.io.File
-import java.nio.file.Paths
+import org.http4s.MediaType
+import org.http4s.headers.`Content-Type`
 
-object DevServer extends ZIOAppDefault:
-  def log(level: String, message: String) =
-    println(s"${java.time.LocalDateTime.now()} [$level] $message")
+object DevServer extends IOApp {
+  private val dsl = new Http4sDsl[IO] {}
+  import dsl.*
 
-  def run =
-    val app = Routes(
-      Method.GET / "index.html" -> handler(serveIndexHtml),
-      Method.GET / "main.js" -> handler(serveMainJs),
-      Method.GET / "main.js.map" -> handler(serveSourceMap),
-      Method.GET / "favicon.ico" -> handler(_ =>
-        ZIO.succeed(Response.status(Status.NotFound))
-      ),
-      Method.OPTIONS / "" -> handler(_ => ZIO.succeed(Response.ok))
-    ).toHttpApp
+  private val jsOutputDir = new File(
+    "../frontend/target/scala-3.3.1/yeye-frontend-fastopt/"
+  )
 
-    def serveIndexHtml(req: Request) =
-      ZIO.succeed(log("INFO", "Received request for index.html")) *>
-        ZIO
-          .attempt {
-            val content = scala.io.Source.fromResource("index.html").mkString
-            log("INFO", s"Serving index.html with ${content.length} bytes")
-            Response.html(content)
-          }
-          .catchAll { e =>
-            log("ERROR", s"Error serving index.html: ${e.getMessage}")
-            ZIO.succeed(
-              Response(
-                Status.InternalServerError,
-                body = Body.fromString(s"Error: ${e.getMessage}")
-              )
-            )
-          }
+  private val jsFileService = HttpRoutes.of[IO] {
+    case req @ GET -> Root / fileName
+        if fileName.endsWith(".js") || fileName.endsWith(".js.map") =>
+      StaticFile
+        .fromFile(new File(jsOutputDir, fileName), Some(req))
+        .getOrElseF(NotFound())
+  }
 
-    def serveMainJs(req: Request) =
-      ZIO.succeed(log("INFO", "Received request for main.js")) *>
-        ZIO
-          .attempt {
-            val jsFile = Paths.get("frontend/dist/main.js").toAbsolutePath
-            log("INFO", s"Looking for main.js at: $jsFile")
-            if (jsFile.toFile.exists()) {
-              val content = scala.io.Source.fromFile(jsFile.toFile).mkString
-              log("INFO", s"Serving main.js with ${content.length} bytes")
-              Response(
-                Status.Ok,
-                headers = Headers(
-                  Header.ContentType(MediaType.text.javascript),
-                  Header.AccessControlAllowOrigin.All,
-                  Header.AccessControlAllowMethods.All,
-                  Header.AccessControlAllowHeaders.All
-                ),
-                body = Body.fromString(content)
-              )
-            } else {
-              log("WARN", s"main.js not found at $jsFile")
-              Response(
-                Status.NotFound,
-                body = Body.fromString("main.js not found")
-              )
-            }
-          }
-          .catchAll { e =>
-            log("ERROR", s"Error serving main.js: ${e.getMessage}")
-            ZIO.succeed(
-              Response(
-                Status.InternalServerError,
-                body = Body.fromString(s"Error: ${e.getMessage}")
-              )
-            )
-          }
+  private val routes = HttpRoutes.of[IO] {
+    case req @ GET -> Root =>
+      StaticFile
+        .fromResource("/index.html", Some(req))
+        .map(_.putHeaders(`Content-Type`(MediaType.text.html)))
+        .getOrElseF(NotFound())
+    case req @ GET -> Root / fileName
+        if fileName.endsWith(".js") || fileName.endsWith(".js.map") =>
+      jsFileService(req).getOrElseF(NotFound())
+    case GET -> Root / "favicon.ico" =>
+      NoContent()
+  }
 
-    def serveSourceMap(req: Request) =
-      ZIO.succeed(log("INFO", "Received request for source map")) *>
-        ZIO
-          .attempt {
-            val mapFile = Paths.get("frontend/dist/main.js.map").toAbsolutePath
-            log("INFO", s"Looking for source map at: $mapFile")
-            if (mapFile.toFile.exists()) {
-              val content = scala.io.Source.fromFile(mapFile.toFile).mkString
-              Response(
-                Status.Ok,
-                headers = Headers(
-                  Header.ContentType(MediaType.application.json),
-                  Header.AccessControlAllowOrigin.All,
-                  Header.AccessControlAllowMethods.All,
-                  Header.AccessControlAllowHeaders.All
-                ),
-                body = Body.fromString(content)
-              )
-            } else {
-              log("WARN", s"Source map not found at $mapFile")
-              Response(Status.NotFound)
-            }
-          }
-          .catchAll { e =>
-            log("ERROR", s"Error serving source map: ${e.getMessage}")
-            ZIO.succeed(Response(Status.InternalServerError))
-          }
+  def run(args: List[String]): IO[ExitCode] = {
+    val finalHttpApp = Router(
+      "/" -> routes
+    ).orNotFound
 
-    ZIO.succeed(log("INFO", "Starting development server...")) *>
-      Server
-        .serve(app)
-        .provide(
-          Server.defaultWithPort(8090)
-        )
+    EmberServerBuilder
+      .default[IO]
+      .withHost(ipv4"0.0.0.0")
+      .withPort(port"8081")
+      .withHttpApp(finalHttpApp)
+      .build
+      .use(_ => IO.never)
+      .as(ExitCode.Success)
+  }
+}

@@ -1,18 +1,27 @@
 package com.yeye.backend.model
 
-import com.yeye.shared.User
-import caliban.schema.{Schema, SchemaDerivation}
-import caliban.schema.ArgBuilder
+import io.circe.generic.auto._ // Automatic codec derivation
+import io.circe.{Encoder, Decoder} // Explicit Encoder/Decoder if needed later
 
-/** Model object providing schema instances for the User type.
-  *
-  * This object defines:
-  *   - GraphQL schema for User type
-  *   - Argument builder for User type
-  */
-object UserModel:
-  /** Schema instance for User type that can be used with any environment R */
-  given [R]: Schema[R, User] = Schema.gen[R, User]
+case class User(
+    id: Long,
+    name: String,
+    email: String
+)
 
-  /** Argument builder for User type to handle GraphQL input */
-  given ArgBuilder[User] = ArgBuilder.gen[User]
+// Request model for creating a user (without ID)
+case class CreateUserRequest(
+    name: String,
+    email: String
+)
+
+// Companion object to hold potential explicit codecs if auto-derivation isn't sufficient
+// or if specific customizations are needed. Auto should work for these simple cases.
+object UserCodecs {
+  // Implicit codecs will be derived by circe.generic.auto._
+  // Example of explicit derivation if needed:
+  // implicit val userEncoder: Encoder[User] = io.circe.generic.semiauto.deriveEncoder
+  // implicit val userDecoder: Decoder[User] = io.circe.generic.semiauto.deriveDecoder
+  // implicit val createUserRequestEncoder: Encoder[CreateUserRequest] = io.circe.generic.semiauto.deriveEncoder
+  // implicit val createUserRequestDecoder: Decoder[CreateUserRequest] = io.circe.generic.semiauto.deriveDecoder
+}

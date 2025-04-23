@@ -3,22 +3,20 @@ package com.yeye.frontend.components
 import com.raquo.laminar.api.L.*
 import com.yeye.frontend.types.File
 import com.yeye.frontend.services.ApiService
-import com.yeye.shared.User
-import zio.json.*
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.yeye.frontend.types.User
+import io.circe.parser.decode
+import org.scalajs.dom
 import com.raquo.airstream.ownership.Owner
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object App:
   def apply(owner: Owner): HtmlElement =
     // State variables
-    val emailVar = Var("")
-    val firstNameVar = Var("")
-    val lastNameVar = Var("")
-    val statusVar = Var("")
-    val selectedUserId = Var[Option[String]](None)
     val searchQueryVar = Var("")
     val activeTabVar = Var("users")
     val filesVar = Var[List[File]](List.empty)
+    val usersVar = Var[List[User]](List.empty)
+    val errorVar = Var[Option[String]](None)
 
     // Filtered files signal
     val filteredFiles: Signal[List[File]] =
@@ -27,16 +25,16 @@ object App:
         else files.filter(_.name.toLowerCase.contains(query.toLowerCase))
       }
 
-    // Fetch files when switching to files tab
+    // Fetch users when switching to users tab
     activeTabVar.signal.addObserver(Observer[String] { tab =>
-      if tab == "files" then
-        ApiService
-          .executeGraphQL(ApiService.filesQuery)
-          .foreach { response =>
-            val files = response.fromJson[List[File]].getOrElse(List.empty)
-            filesVar.set(files)
-          }
+      if tab == "users" then
+        ApiService.getUsers.foreach { users =>
+          usersVar.set(users)
+        }
     })(owner)
+
+    val $users = usersVar.signal
+    val $error = errorVar.signal
 
     div(
       cls := "app-container",
@@ -72,41 +70,27 @@ object App:
           if tab == "users" then
             div(
               h1("User Management"),
-              UserForm(
-                UserForm.Props(
-                  emailVar = emailVar,
-                  firstNameVar = firstNameVar,
-                  lastNameVar = lastNameVar,
-                  statusVar = statusVar,
-                  selectedUserId = selectedUserId,
-                  onUserCreated = () => (),
-                  onUserUpdated = () => (),
-                  onUserDeleted = () => ()
-                )
+              div(
+                cls := "error",
+                child <-- $error.map {
+                  case Some(error) => div(error)
+                  case None        => emptyNode
+                }
               ),
-              child <-- EventStream
-                .fromFuture(ApiService.executeGraphQL(ApiService.usersQuery))
-                .map(_.fromJson[List[User]].getOrElse(List.empty))
-                .map(users =>
-                  div(
-                    cls := "user-list",
-                    users.map(user =>
-                      div(
-                        cls := "user-item",
-                        h3(s"${user.firstName} ${user.lastName}"),
-                        p(s"Email: ${user.email}"),
-                        p(s"Status: ${user.status}"),
-                        onClick --> { _ =>
-                          emailVar.set(user.email)
-                          firstNameVar.set(user.firstName)
-                          lastNameVar.set(user.lastName)
-                          statusVar.set(user.status)
-                          selectedUserId.set(Some(user.id))
-                        }
-                      )
+              UserForm.render(UserForm.Props(usersVar, errorVar)),
+              div(
+                cls := "users-list",
+                children <-- $users.map(users =>
+                  users.map(user =>
+                    div(
+                      cls := "user-card",
+                      h3(user.name),
+                      p(s"Email: ${user.email}"),
+                      p(s"Age: ${user.age}")
                     )
                   )
                 )
+              )
             )
           else
             div(

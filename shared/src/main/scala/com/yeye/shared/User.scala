@@ -1,6 +1,7 @@
 package com.yeye.shared
 
-import zio.json.*
+import io.circe.{Encoder, Decoder}
+import io.circe.generic.semiauto.{deriveEncoder, deriveDecoder}
 
 case class User(
     id: String,
@@ -10,9 +11,12 @@ case class User(
     status: String,
     created: Long,
     lastUpdated: Long
-) derives JsonCodec
+)
 
 object User {
+  given Encoder[User] = deriveEncoder[User]
+  given Decoder[User] = deriveDecoder[User]
+
   def empty: User = User(
     id = "",
     email = "",

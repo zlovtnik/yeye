@@ -2,147 +2,92 @@ ThisBuild / scalaVersion := "3.3.1"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.yeye"
 
-// Add assembly plugin
-ThisBuild / assemblyMergeStrategy := {
-  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
-  case PathList("META-INF", xs @ _*)       => MergeStrategy.last
-  case PathList("META-INF", "io.netty.versions.properties") =>
-    MergeStrategy.last
-  case x => MergeStrategy.first
-}
-
-// Common settings for all projects
-lazy val commonSettings = Seq(
-  scalacOptions ++= Seq(
-    "-deprecation",
-    "-feature",
-    "-unchecked",
-    "-language:implicitConversions",
-    "-language:higherKinds",
-    "-Xlog-implicits",
-    "-Xlog-reflective-calls"
-  )
+val sharedDependencies = Seq(
+  "org.typelevel" %% "cats-core" % "2.10.0",
+  "io.circe" %% "circe-generic" % "0.14.6",
+  "io.circe" %% "circe-parser" % "0.14.6"
 )
 
-// Shared module (code used by both backend and frontend)
-lazy val shared = project
-  .in(file("shared"))
-  .enablePlugins(ScalaJSPlugin)
-  .settings(commonSettings)
+val backendDependencies = Seq(
+  "org.typelevel" %% "cats-effect" % "3.5.4",
+  "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
+  "org.http4s" %% "http4s-ember-server" % "0.23.26",
+  "org.http4s" %% "http4s-circe" % "0.23.26",
+  "org.http4s" %% "http4s-dsl" % "0.23.26",
+  "io.circe" %% "circe-generic" % "0.14.6",
+  "com.zaxxer" % "HikariCP" % "5.1.0",
+  "org.postgresql" % "postgresql" % "42.7.3",
+  "org.typelevel" %% "cats-core" % "2.10.0",
+  "org.typelevel" %% "cats-effect-testing-scalatest" % "1.5.0" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.18" % Test
+)
+
+// Define dependencies needed for the devServer project
+val devServerDependencies = Seq(
+  "org.typelevel" %% "cats-effect" % "3.5.4",
+  "org.http4s" %% "http4s-ember-server" % "0.23.26",
+  "org.http4s" %% "http4s-dsl" % "0.23.26",
+  "com.comcast" %% "ip4s-core" % "3.5.0", // Added ip4s dependency
+  "ch.qos.logback" % "logback-classic" % "1.5.6" // Added logger
+)
+
+lazy val root = project
+  .in(file("."))
+  .aggregate(backend, frontend, devServer) // Added devServer to aggregation
   .settings(
-    name := "yeye-shared",
-    libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats-core" % "2.10.0",
-      "dev.zio" %%% "zio" % "2.0.21",
-      "dev.zio" %%% "zio-json" % "0.6.2"
-    )
+    name := "yeye"
   )
 
-// Backend module
 lazy val backend = project
   .in(file("backend"))
-  .enablePlugins(RevolverPlugin)
-  .settings(commonSettings)
   .settings(
     name := "yeye-backend",
-    assembly / mainClass := Some("com.yeye.backend.Server"),
-    assembly / assemblyJarName := "backend.jar",
-    Revolver.enableDebugging(port = 5050, suspend = false),
-    reStart / mainClass := Some("com.yeye.backend.Server"),
-    reStart / javaOptions ++= Seq(
+    libraryDependencies ++= backendDependencies,
+    scalacOptions ++= Seq(
+      "-deprecation",
+      "-feature",
+      "-unchecked",
+      "-language:postfixOps"
+    ),
+    Compile / mainClass := Some("com.yeye.backend.Server"),
+    run / fork := true,
+    run / javaOptions ++= Seq(
       "-Dlogback.configurationFile=logback.xml",
       "-Xmx1G"
-    ),
-    libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % "2.0.21",
-      "dev.zio" %% "zio-http" % "3.0.0-RC4",
-      "dev.zio" %% "zio-test" % "2.0.21" % Test,
-      "dev.zio" %% "zio-test-sbt" % "2.0.21" % Test,
-      "io.getquill" %% "quill-jdbc-zio" % "4.8.0",
-      "io.getquill" %% "quill-jdbc" % "4.8.0",
-      "com.oracle.database.jdbc" % "ojdbc11" % "23.3.0.23.09",
-      "com.zaxxer" % "HikariCP" % "5.0.1",
-      "org.slf4j" % "slf4j-api" % "2.0.9",
-      "ch.qos.logback" % "logback-classic" % "1.4.11",
-      "com.github.ghostdogpr" %% "caliban" % "2.5.1",
-      "com.github.ghostdogpr" %% "caliban-zio-http" % "2.5.1"
-    ),
-    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+    )
   )
   .dependsOn(shared)
 
-// Frontend module
+// Define the new devServer project
+lazy val devServer = project
+  .in(file("devServer"))
+  .settings(
+    name := "yeye-devserver",
+    libraryDependencies ++= devServerDependencies,
+    Compile / mainClass := Some("com.yeye.devserver.DevServer"),
+    run / fork := true
+  )
+  .dependsOn(shared) // Assuming devServer might need shared code, adjust if not
+
 lazy val frontend = project
   .in(file("frontend"))
   .enablePlugins(ScalaJSPlugin)
-  .settings(commonSettings)
   .settings(
     name := "yeye-frontend",
-    scalaJSUseMainModuleInitializer := true,
-    // Add verbose logging for Scala.js
-    scalaJSLinkerConfig ~= { _.withSourceMap(true) },
-    scalaJSLinkerConfig ~= { _.withPrettyPrint(true) },
-    // Explicitly disable Closure Compiler
-    scalaJSLinkerConfig ~= { _.withClosureCompiler(false) },
-    // Set optimization level to simple
-    scalaJSLinkerConfig ~= { _.withOptimizer(false) },
-    // Add logging for the build process
-    logLevel := Level.Debug,
-    // Set the output directory for compiled files
-    Compile / fastLinkJS / scalaJSLinkerOutputDirectory := (ThisBuild / baseDirectory).value / "dist",
-    Compile / fullLinkJS / scalaJSLinkerOutputDirectory := (ThisBuild / baseDirectory).value / "dist",
-    // Enable hot reloading for frontend
-    Compile / fastLinkJS / watchSources ++= (Compile / unmanagedSourceDirectories).value,
-    libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "16.0.0",
-      "dev.zio" %%% "zio-json" % "0.6.2",
-      "com.lihaoyi" %%% "utest" % "0.8.1" % Test,
-      "org.scala-js" %%% "scalajs-dom" % "2.7.0"
-    ),
-    testFrameworks += new TestFramework("utest.runner.Framework"),
-    Test / scalaJSLinkerConfig ~= {
-      _.withModuleKind(ModuleKind.ESModule)
-        .withSourceMap(true)
-        .withModuleSplitStyle(
-          org.scalajs.linker.interface.ModuleSplitStyle
-            .SmallModulesFor(List("com.yeye"))
-        )
-    },
-    Test / scalaJSUseMainModuleInitializer := false,
-    Test / scalaJSUseTestModuleInitializer := true
+    scalaJSUseMainModuleInitializer := true
   )
   .dependsOn(shared)
 
-// Development server module
-lazy val devServer = project
-  .in(file("devServer"))
-  .settings(commonSettings)
+lazy val shared = project
+  .in(file("shared"))
   .settings(
-    name := "yeye-dev-server",
-    libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-http" % "3.0.0-RC4",
-      "dev.zio" %% "zio-logging" % "2.2.1"
-    ),
-    // Configure Bun for development server
-    run / fork := true,
-    run / javaOptions += "-Dscalajs.bun=true",
-    // Add Bun-specific settings
-    run / envVars := Map(
-      "NODE_ENV" -> "development",
-      "BUN_JS_RUNTIME" -> "true"
-    )
+    name := "yeye-shared",
+    libraryDependencies ++= sharedDependencies
   )
-  .dependsOn(frontend)
 
-// Root project
-lazy val root = project
-  .in(file("."))
-  .aggregate(backend, frontend, shared, devServer)
-  .settings(
-    name := "yeye",
-    logLevel := Level.Debug,
-    // Add commands for development
-    addCommandAlias("dev", ";frontend/fastLinkJS; backend/reStart"),
-    addCommandAlias("devFrontend", "~frontend/fastLinkJS"),
-    addCommandAlias("devBackend", "~backend/reStart")
-  )
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", "MANIFEST.MF")  => MergeStrategy.discard
+  case PathList("META-INF", "services", _*) => MergeStrategy.concat
+  case PathList("META-INF", _*)             => MergeStrategy.discard
+  case _                                    => MergeStrategy.first
+}
