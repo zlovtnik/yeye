@@ -93,6 +93,67 @@ frontend/src/main/scala/com/yeye/frontend/
 - **Users Page**: CRUD interface for user management
 - **Responsive Design**: Adapts to different screen sizes
 
+## Testing
+
+The project includes a comprehensive testing infrastructure for both backend and frontend components.
+
+### Running All Tests
+
+To run all tests (backend and frontend) in a single command:
+
+```bash
+sbt testAll
+```
+
+This will:
+1. Run backend unit tests using ScalaTest
+2. Compile the Scala.js code and run frontend tests in headless mode
+
+### Backend Tests
+
+Backend tests use ScalaTest with Cats Effect's testing utilities:
+
+```bash
+sbt backend/test
+```
+
+The tests cover REST API endpoints, service logic, and data repositories with simulated database interactions.
+
+### Frontend Tests
+
+Frontend tests can be run in two modes:
+
+#### Interactive Mode (Browser-based)
+
+This opens a browser window with the test runner:
+
+```bash
+./frontend/run-tests.sh
+```
+
+In this mode:
+1. The Scala.js code is compiled to JavaScript
+2. A browser window opens with the test page
+3. Click the "Run Tests" button to execute tests
+4. Test results appear on the page and in the browser console
+
+#### Headless Mode (CI/CD)
+
+For continuous integration environments:
+
+```bash
+./frontend/run-tests.sh --headless
+```
+
+This mode is designed for automated testing pipelines and exits with appropriate status codes.
+
+### Test Structure
+
+- **Backend tests**: Located in `backend/src/test/scala`
+- **Frontend tests**: Browser-based tests using the DOM
+  - Test implementations: `frontend/src/main/scala/com/yeye/frontend/TestMain.scala`
+  - Test runner: `frontend/src/main/resources/test.html`
+
 ## REST API
 
 The backend exposes a REST API at `http://localhost:8080`.

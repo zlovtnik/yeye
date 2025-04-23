@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YeYe Frontend Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .instructions {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .test-results {
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .test-results h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: #2c3e50;
+        }
+
+        #results {
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .passed {
+            color: #4CAF50;
+        }
+
+        .failed {
+            color: #f44336;
+        }
+
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>YeYe Frontend Tests</h1>
+
+    <div class="instructions">
+        <p>This page runs browser-based tests for the YeYe frontend application.</p>
+        <p>Open the browser console (F12 or Command+Option+I) to see detailed test output.</p>
+    </div>
+
+    <button id="runTests">Run Tests</button>
+
+    <div class="test-results">
+        <h2>Test Results</h2>
+        <div id="results">Click "Run Tests" to start testing...</div>
+    </div>
+
+    <!-- Load the compiled JavaScript -->
+    <script type="text/javascript" src="../../../target/scala-3.3.1/yeye-frontend-fastopt/main.js"></script>
+
+    <script>
+        // Simple wrapper to display test results in the page
+        const originalConsoleLog = console.log;
+        const resultElement = document.getElementById('results');
+        let testOutput = '';
+
+        console.log = function () {
+            // Call the original console.log
+            originalConsoleLog.apply(console, arguments);
+
+            // Capture regular log messages 
+            if (typeof arguments[0] === 'string' && arguments[0].indexOf('%c') !== 0) {
+                testOutput += arguments[0] + '\n';
+                resultElement.textContent = testOutput;
+            }
+        };
+
+        // Find the TestMain object in the compiled JS
+        function findTestMain() {
+            // Look for our TestMain object in the global scope
+            for (const prop in window) {
+                if (prop.includes('TestMain')) {
+                    return window[prop];
+                }
+            }
+            return null;
+        }
+
+        // Function to run the tests
+        function runTests() {
+            // Reset output
+            testOutput = "Running tests...\n";
+            resultElement.textContent = testOutput;
+            resultElement.className = '';
+
+            // Find and run the tests
+            const testMain = findTestMain();
+            if (testMain) {
+                setTimeout(() => {
+                    testMain.main();
+
+                    // Update styling based on results
+                    if (testOutput.includes('tests failed')) {
+                        resultElement.classList.add('failed');
+                    } else if (testOutput.includes('All tests passed')) {
+                        resultElement.classList.add('passed');
+                    }
+                }, 100);
+            } else {
+                resultElement.textContent = "Error: Could not find TestMain in compiled JavaScript.";
+                resultElement.classList.add('failed');
+            }
+        }
+
+        // Set up the run button
+        document.getElementById('runTests').addEventListener('click', runTests);
+
+        // Auto-run tests if in a headless environment (no real user interaction)
+        function isHeadlessEnvironment() {
+            // Check if we're in a Node.js/jsdom environment
+            return typeof window.navigator !== 'undefined' &&
+                /\bNode.js\b|\bJSDOM\b/.test(window.navigator.userAgent);
+        }
+
+        // Automatically run tests in headless mode
+        if (isHeadlessEnvironment()) {
+            console.log("Detected headless environment, running tests automatically...");
+            setTimeout(runTests, 500);
+        }
+    </script>
+</body>
+
+</html>

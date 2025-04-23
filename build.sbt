@@ -31,11 +31,24 @@ val devServerDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.5.6" // Added logger
 )
 
+// Define custom tasks
+lazy val testAll = taskKey[Unit](
+  "Run all tests, including backend unit tests and frontend browser tests"
+)
+
 lazy val root = project
   .in(file("."))
   .aggregate(backend, frontend, devServer) // Added devServer to aggregation
   .settings(
-    name := "yeye"
+    name := "yeye",
+
+    // Custom task to run all tests (backend unit tests and frontend browser tests)
+    testAll := {
+      // First run backend tests
+      (backend / Test / test).value
+      // Then run frontend tests
+      (frontend / Test / test).value
+    }
   )
 
 lazy val backend = project
@@ -74,7 +87,33 @@ lazy val frontend = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     name := "yeye-frontend",
-    scalaJSUseMainModuleInitializer := true
+    // Specify Main as the main class to avoid conflicts with test classes
+    Compile / mainClass := Some("com.yeye.frontend.Main"),
+    scalaJSUseMainModuleInitializer := true,
+
+    // Define how to run frontend tests as part of the standard test task
+    Test / test := {
+      import scala.sys.process._
+
+      // Compile first - important: we need to use fastOptJS, not fastLinkJS
+      (Compile / fastOptJS).value
+
+      // Run the script in headless mode for automation
+      println("Running frontend browser tests in headless mode...")
+      val scriptPath = baseDirectory.value / "run-tests.sh"
+
+      // Make sure the script is executable
+      s"chmod +x ${scriptPath}".!
+
+      // Run with headless flag
+      val exitCode = s"${scriptPath} --headless".!
+
+      if (exitCode != 0) {
+        throw new Exception(s"Frontend tests failed with exit code $exitCode")
+      } else {
+        println("✅ Frontend tests passed successfully!")
+      }
+    }
   )
   .dependsOn(shared)
 
