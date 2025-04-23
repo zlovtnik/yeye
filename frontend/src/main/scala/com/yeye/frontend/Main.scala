@@ -11,7 +11,21 @@ import scala.scalajs.js
 import org.scalajs.dom.HttpMethod
 import scalajs.js.DynamicImplicits.truthValue
 
+/** Main frontend application that provides a user interface for managing users.
+  *
+  * This application features:
+  *   - User list display
+  *   - User creation form
+  *   - User editing capabilities
+  *   - User deletion functionality
+  *   - Real-time updates using Laminar
+  */
 object Main:
+  /** Main entry point for the frontend application.
+    *
+    * @param args
+    *   Command line arguments (unused)
+    */
   def main(args: Array[String]): Unit =
     // State
     val emailVar = Var("")
@@ -21,6 +35,7 @@ object Main:
     val selectedUserId = Var[Option[String]](None)
 
     // GraphQL queries
+    /** Query to fetch all users from the backend */
     val usersQuery = """
       query {
         users {
@@ -35,6 +50,7 @@ object Main:
       }
     """
 
+    /** Mutation to create a new user */
     val createUserMutation = """
       mutation CreateUser($email: String!, $firstName: String!, $lastName: String!, $status: String!) {
         createUser(input: { email: $email, firstName: $firstName, lastName: $lastName, status: $status }) {
@@ -49,6 +65,7 @@ object Main:
       }
     """
 
+    /** Mutation to update an existing user */
     val updateUserMutation = """
       mutation UpdateUser($id: String!, $email: String!, $firstName: String!, $lastName: String!, $status: String!) {
         updateUser(input: { id: $id, user: { id: $id, email: $email, firstName: $firstName, lastName: $lastName, status: $status, created: 0, lastUpdated: 0 } }) {
@@ -63,12 +80,22 @@ object Main:
       }
     """
 
+    /** Mutation to delete a user */
     val deleteUserMutation = """
       mutation DeleteUser($id: String!) {
         deleteUser(id: $id)
       }
     """
 
+    /** Executes a GraphQL query against the backend API.
+      *
+      * @param query
+      *   The GraphQL query or mutation to execute
+      * @param variables
+      *   JSON string containing the variables for the query
+      * @return
+      *   Future containing the JSON response
+      */
     def executeGraphQL(
         query: String,
         variables: String = "{}"
@@ -97,6 +124,7 @@ object Main:
           response
         }
 
+    /** Creates a new user with the current form values */
     def createUser(): Unit =
       val variables = s"""{
         "email": ${emailVar.now().toJson},
@@ -113,6 +141,7 @@ object Main:
           selectedUserId.set(None)
         }
 
+    /** Updates the selected user with the current form values */
     def updateUser(): Unit =
       selectedUserId.now().foreach { id =>
         val variables = s"""{
@@ -132,10 +161,12 @@ object Main:
           }
       }
 
+    /** Deletes a user by ID */
     def deleteUser(id: String): Unit =
       val variables = s"""{"id": ${id.toJson}}"""
       executeGraphQL(deleteUserMutation, variables)
 
+    /** Selects a user for editing, populating the form with their data */
     def selectUser(user: User): Unit =
       emailVar.set(user.email)
       firstNameVar.set(user.firstName)
@@ -143,6 +174,7 @@ object Main:
       statusVar.set(user.status)
       selectedUserId.set(Some(user.id))
 
+    /** Main application UI built with Laminar */
     val app = div(
       cls := "app-container",
       // Sidebar
@@ -256,4 +288,5 @@ object Main:
       )
     )
 
-    render(dom.document.querySelector("#app"), app)
+    // Mount the application to the DOM
+    render(dom.document.getElementById("app"), app)

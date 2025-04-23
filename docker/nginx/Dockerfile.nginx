@@ -25,8 +25,8 @@ RUN /usr/local/sbt/bin/sbt frontend/fullLinkJS
 # Create final image
 FROM nginx:alpine
 
-# Copy Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the Nginx configuration file
+COPY docker/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Create target directory
 RUN mkdir -p /usr/share/nginx/html/target/scala-3.3.1

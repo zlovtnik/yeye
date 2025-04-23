@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free
+    container_name: yeye-oracle
+    environment:
+      - ORACLE_SID=FREE
+      - ORACLE_PDB=FREEPDB1
+      - ORACLE_PWD=ora
+      - INIT_SGA_SIZE=2000
+      - INIT_PGA_SIZE=500
+      - ORACLE_EDITION=developer
+      - ENABLE_ARCHIVELOG=false
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    networks:
+      - yeye-network
+    healthcheck:
+      test: ["CMD", "sqlplus", "-L", "system/ora@//localhost:1521/FREEPDB1", "AS", "SYSDBA", "<<< 'SELECT 1 FROM DUAL;'"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 180s
+    command: >
+      bash -c "
+        /opt/oracle/runOracle.sh &
+        while ! sqlplus -L system/ora@//localhost:1521/free AS SYSDBA <<< 'SELECT 1 FROM DUAL;' > /dev/null 2>&1; do
+          echo 'Waiting for database to be ready...';
+          sleep 5;
+        done;
+        echo 'Database is ready!';
+        # Register the PDB with the listener
+        sqlplus -L system/ora@//localhost:1521/FREEPDB1 AS SYSDBA << EOF
+          ALTER SYSTEM SET LOCAL_LISTENER='(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))' SCOPE=BOTH;
+          ALTER SYSTEM REGISTER;
+          ALTER PLUGGABLE DATABASE FREEPDB1 SAVE STATE;
+          EXEC DBMS_SERVICE.CREATE_SERVICE('FREEPDB1', 'FREEPDB1');
+          EXEC DBMS_SERVICE.START_SERVICE('FREEPDB1');
+          COMMIT;
+        EOF
+        # Wait for service registration
+        sleep 10;
+        # Verify service registration
+        lsnrctl status
+        tail -f /opt/oracle/diag/rdbms/*/*/trace/alert*.log
+      "
+
+volumes:
+  oracle-data:
+    name: yeye-oracle-data
+    external: true
+
+networks:
+  yeye-network:
+    driver: bridge 

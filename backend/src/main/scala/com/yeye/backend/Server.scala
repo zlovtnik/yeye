@@ -12,18 +12,34 @@ import io.getquill.*
 import javax.sql.DataSource
 import java.io.File
 
+/** Main server application that handles HTTP requests and serves the
+  * application.
+  *
+  * This server provides:
+  *   - GraphQL API endpoints
+  *   - Static file serving
+  *   - Health check endpoint
+  *   - Database connection management
+  */
 object Server extends ZIOAppDefault:
+  /** JSON encoder for User type */
   given JsonEncoder[User] = DeriveJsonEncoder.gen[User]
+
+  /** JSON decoder for User type */
   given JsonDecoder[User] = DeriveJsonDecoder.gen[User]
 
-  // Static file handler
+  /** Handler for serving static files from the frontend distribution directory.
+    * Returns 404 if the file is not found.
+    */
   val staticHandler
       : Handler[DataSource & UserRepository, Response, Any, Response] =
     Handler
       .fromFile(File("frontend/dist"))
       .mapError(_ => Response.status(Status.NotFound))
 
-  // Health check handler with database verification
+  /** Health check handler that verifies the database connection. Returns 200 OK
+    * if the database is accessible, 503 Service Unavailable otherwise.
+    */
   private val healthCheckHandler = Handler.fromFunctionZIO { (req: Request) =>
     for
       // Verify database connection
@@ -45,7 +61,12 @@ object Server extends ZIOAppDefault:
     yield response
   }
 
-  // Static file routes with proper fallback
+  /** Routes for serving static files including:
+    *   - JavaScript bundles
+    *   - Favicon
+    *   - HTML files
+    *   - Assets
+    */
   val staticRoutes = Routes(
     Method.GET / "main.js" -> staticHandler,
     Method.GET / "favicon.ico" -> staticHandler,
@@ -54,7 +75,11 @@ object Server extends ZIOAppDefault:
     Method.GET / "assets" / "**" -> staticHandler
   )
 
-  // GraphQL handler
+  /** GraphQL request handler that:
+    *   1. Extracts the request body 2. Creates a GraphQL interpreter 3.
+    *      Executes the query 4. Returns the result as JSON Returns 500 Internal
+    *      Server Error if execution fails
+    */
   val graphQLHandler = Handler.fromFunctionZIO { (request: Request) =>
     (for
       body <- request.body.asString
@@ -67,6 +92,11 @@ object Server extends ZIOAppDefault:
     }
   }
 
+  /** Combined application routes including:
+    *   - Health check endpoint
+    *   - GraphQL API endpoint
+    *   - Static file routes
+    */
   val app = Routes(
     // Health check endpoint
     Method.GET / "internal" / "health" -> healthCheckHandler,
@@ -74,6 +104,10 @@ object Server extends ZIOAppDefault:
     Method.POST / "api" / "graphql" -> graphQLHandler
   ) ++ staticRoutes
 
+  /** Main application entry point that:
+    *   1. Starts the HTTP server on port 8081 2. Provides the UserRepository
+    *      and database layer 3. Serves the combined application routes
+    */
   def run =
     zio.http.Server
       .serve(app.toHttpApp)
