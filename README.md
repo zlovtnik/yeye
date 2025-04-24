@@ -1,23 +1,28 @@
 # YeYe - A Modern Web Application
 
-YeYe is a modern web application built with Scala 3, Cats Effect, and Http4s for the backend, and Scala.js with Laminar for the frontend.
+YeYe is a modern web application built with Scala 3, ZIO, Cats Effect, and Http4s for the backend, and Scala.js with Laminar for the frontend.
 
 ## Prerequisites
 
-- JDK 11 or later
+- JDK 17 or later
 - sbt 1.9.x or later
-- Docker (for running the Oracle database, if using the provided configuration) or a running Oracle instance.
+- Docker and docker-compose/podman-compose for containerized deployment
 
 ## Setup
 
 1.  **Database Setup:**
-    *   This project is configured to connect to an Oracle database. The connection details are in `backend/src/main/resources/application.conf`.
-    *   By default, it expects an Oracle instance at `jdbc:oracle:thin:@//localhost:1521/free` with user `system` and password `ora`.
-    *   If you don't have a local Oracle instance, you can potentially run one using Docker. *Note: Instructions for running Oracle via Docker are not included here but can be found online.*
-    *   Adjust the connection details in `application.conf` if your setup differs.
+    *   This project is configured to connect to an Oracle database. The connection details are configured via environment variables.
+    *   Default connection parameters are stored in `docker-compose.yml` and include:
+      ```
+      DB_URL=jdbc:oracle:thin:@//oracle:1521/FREE
+      DB_USER=system
+      DB_PASSWORD=ora
+      DB_CONNECTION_RETRY_COUNT=30
+      DB_CONNECTION_RETRY_DELAY=10
+      ```
     *   Database migrations are handled automatically by Flyway using scripts in `backend/src/main/resources/db/migration`.
 
-2.  **Build and Run:**
+2.  **Local Development:**
     *   You need to run both the backend and the frontend development server. It's easiest to use two separate terminals.
 
     *   **Terminal 1: Run the Backend**
@@ -35,6 +40,24 @@ YeYe is a modern web application built with Scala 3, Cats Effect, and Http4s for
         *   `devServer/run`: Starts a simple development server on `http://localhost:8081` which serves the `index.html` from `devServer/src/main/resources/` and the compiled JavaScript from the frontend target directory.
 
     *   Access the application in your browser at `http://localhost:8081`.
+
+3.  **Docker Deployment:**
+    *   The project includes a complete Docker setup with:
+      * Oracle database service
+      * Scala backend service
+      * Nginx webserver for static files and frontend assets
+    
+    *   **Build and Run All Services:**
+        ```bash
+        podman compose -f docker/docker-compose.yml up -d
+        # or with Docker
+        docker-compose -f docker/docker-compose.yml up -d
+        ```
+        
+    *   **Access The Application:**
+        * Frontend: `http://localhost:80`
+        * Backend API: `http://localhost:8080`
+        * Database: `localhost:1521` (Oracle FREE service)
 
 ## Development
 
@@ -194,6 +217,29 @@ If you're experiencing issues connecting to the backend API:
    Config.fetchFromPort(1) // Try port 3000
    ```
 
+### Docker/Podman Issues
+
+When using Docker or Podman for deployment:
+
+1. **Database Connection Errors**:
+   - Check if the Oracle container is running: `podman ps | grep oracle`
+   - Verify the Oracle container is healthy: `podman logs yeye-oracle`
+   - The backend service has retry logic but may fail if Oracle takes too long to initialize
+
+2. **Backend Build Failures**:
+   - If the backend build fails, check the logs: `podman logs yeye-backend`
+   - Verify environment variables are correctly passed in `docker-compose.yml`
+   - Try rebuilding with no cache: `podman compose -f docker/docker-compose.yml build --no-cache backend`
+
+3. **Nginx/Frontend Issues**:
+   - Check if static assets are being served: `curl http://localhost:80`
+   - Inspect Nginx logs: `podman logs yeye-nginx`
+   - Verify the frontend assets were correctly built and copied to the Nginx container
+
+4. **Running Behind Corporate Firewalls**:
+   - Set appropriate proxy settings in Docker/Podman configuration
+   - For Oracle images, ensure you have access to the Oracle Container Registry
+
 ### Browser Console Errors
 
 - **404 Not Found**: Backend server may not be running, or endpoint path is incorrect
@@ -212,4 +258,43 @@ Planned enhancements for the project:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Database Configuration
+
+The application uses HikariCP for connection pooling to the Oracle database. The DatabaseConfig module has been enhanced with the following features:
+
+1. **Environment Variable Configuration:**
+   - Connection parameters are read from environment variables
+   - Default values are provided as fallbacks
+   - Key parameters include:
+     - `DB_URL`: JDBC connection URL
+     - `DB_USER`: Database username
+     - `DB_PASSWORD`: Database password
+     - `DB_CONNECTION_RETRY_COUNT`: Number of retry attempts (default: 30)
+     - `DB_CONNECTION_RETRY_DELAY`: Delay between retries in seconds (default: 10)
+
+2. **Connection Pooling:**
+   - Minimum idle connections: 2
+   - Maximum connections: 10
+   - Connection timeout: 30 seconds
+   - Connection validation via `SELECT 1 FROM DUAL`
+   - Leak detection threshold: 30 seconds
+
+3. **Retry Logic:**
+   - The system implements a backoff strategy for establishing database connections
+   - Failed connection attempts are logged with informative messages
+   - The system will retry for the configured number of attempts before failing
+
+4. **Resource Management:**
+   - Database connections are wrapped in `Resource[IO, HikariDataSource]`
+   - Proper resource cleanup is ensured via `Resource.make`
+   - The `use` method safely manages connection lifecycles
+
+Example usage:
+```scala
+DatabaseConfig.dataSource.use { dataSource =>
+  // Use dataSource for the lifetime of this block
+  // Connection will be automatically closed after use
+}
+``` 

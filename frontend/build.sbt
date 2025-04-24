@@ -22,3 +22,5 @@ Compile / fastLinkJS / scalaJSLinkerConfig ~= {
   _.withModuleKind(ModuleKind.ESModule)
     .withSourceMap(true)
 }
+
+// Tailwind CSS build is now handled in the Dockerfile
