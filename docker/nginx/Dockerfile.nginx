@@ -40,4 +40,4 @@ COPY --from=build /app/frontend/src/main/resources/index.html /usr/share/nginx/h
 EXPOSE 80
 
 # Start Nginx
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]

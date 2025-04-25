@@ -1,8 +1,12 @@
 package com.yeye.frontend
 
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L
+import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
-// Using fully qualified names for Waypoint classes to avoid import issues
+import com.raquo.waypoint.{*, given}
+import com.raquo.waypoint.Route
+import urldsl.language.PathSegment
+import com.raquo.waypoint.unaryPathSegment
 
 /** Application router that handles navigation between pages
   *
@@ -32,10 +36,34 @@ object Router {
     * @return
     *   The Laminar Element containing the rendered page
     */
-  def renderPage(page: Page): Element = page match {
+  def renderPage(page: Page): L.Element = page match {
     case LandingPage   => com.yeye.frontend.pages.LandingPage()
     case UsersListPage => com.yeye.frontend.pages.users.UsersPage()
   }
+
+  private val landingRoute = Route.static(LandingPage, root)
+  private val usersRoute = Route.static(UsersListPage, root / "users")
+
+  val appRouter = new Router[Page](
+    routes = List(landingRoute, usersRoute),
+    getPageTitle = {
+      case LandingPage   => "YeYe - Home"
+      case UsersListPage => "YeYe - Users"
+    },
+    serializePage = {
+      case LandingPage   => ""
+      case UsersListPage => "users"
+    },
+    deserializePage = {
+      case ""      => LandingPage
+      case "users" => UsersListPage
+    }
+  )(
+    popStateEvents = L.windowEvents(_.onPopState),
+    owner = Main.routerOwner,
+    origin = dom.window.location.origin,
+    initialUrl = dom.window.location.href
+  )
 
   /** Signal that tracks the current page based on URL hash changes
     *
@@ -45,35 +73,23 @@ object Router {
     * @return
     *   A Signal containing the current Page
     */
-  def currentPageSignal: Signal[Page] = {
-    val locationHash = windowEvents(_.onHashChange)
-      .map(_ => dom.window.location.hash)
-      .toSignal(dom.window.location.hash)
-
-    locationHash.map {
-      case "#users" => UsersListPage
-      case _        => LandingPage
-    }
-  }
+  def currentPageSignal: L.Signal[Page] = appRouter.currentPageSignal
 
   /** Navigates to the specified page by updating the URL hash
     *
     * @param page
     *   The page to navigate to
     */
-  def navigateTo(page: Page): Unit = page match {
-    case LandingPage   => dom.window.location.hash = ""
-    case UsersListPage => dom.window.location.hash = "users"
-  }
+  def navigateTo(page: Page): Unit = appRouter.pushState(page)
 
   /** Router component that renders the current page
     *
     * @return
     *   A Laminar Element that updates when the page changes
     */
-  def apply(): Element = {
-    div(
-      child <-- currentPageSignal.map(renderPage)
+  def apply(): L.Element = {
+    L.div(
+      L.child <-- currentPageSignal.map(renderPage)
     )
   }
 }

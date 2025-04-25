@@ -116,6 +116,41 @@ frontend/src/main/scala/com/yeye/frontend/
 - **Users Page**: CRUD interface for user management
 - **Responsive Design**: Adapts to different screen sizes
 
+#### Backend Structure
+
+The backend follows a clean architecture with clear separation of concerns:
+
+```
+backend/src/main/scala/com/yeye/backend/
+├── model/                    # Data models
+│   ├── User.scala            # User data model
+│   └── Sale.scala            # Sales data model
+│
+├── repository/               # Database repositories
+│   ├── UserRepository.scala  # User database operations
+│   └── SaleRepository.scala  # Sales database operations
+│
+├── routes/                   # HTTP routes
+│   ├── UserRoutes.scala      # User API endpoints
+│   └── SaleRoutes.scala      # Sales API endpoints
+│
+├── config/                   # Configuration classes
+├── http/                     # HTTP-related utilities
+├── examples/                 # Example code
+├── codegen/                  # Code generation
+├── cli/                      # Command-line interface
+└── Server.scala              # Main server class
+```
+
+The backend uses:
+- Scala 3.3.1
+- Cats Effect for pure functional programming
+- Http4s for the HTTP server and REST API
+- Circe for JSON handling
+- Flyway for database migrations
+- Oracle Database for persistence (via JDBC)
+- Doobie for type-safe database access
+
 ## Testing
 
 The project includes a comprehensive testing infrastructure for both backend and frontend components.

@@ -6,14 +6,14 @@ import com.yeye.frontend.services.ApiService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.scalajs.js
 
-object FileGrid:
+object FileGrid {
   case class Props(
       files: Signal[List[File]],
       onFileDownload: File => Unit = _ => (),
       onFileDelete: File => Unit = _ => ()
   )
 
-  def apply(props: Props): HtmlElement =
+  def apply(props: Props): HtmlElement = {
     div(
       cls := "file-grid",
       children <-- props.files.map { files =>
@@ -50,3 +50,5 @@ object FileGrid:
         }
       }
     )
+  }
+}

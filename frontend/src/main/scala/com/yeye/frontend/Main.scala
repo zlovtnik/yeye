@@ -1,10 +1,11 @@
 package com.yeye.frontend
 
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L
+import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
-import io.circe.generic.auto.*
-import io.circe.parser.*
-import io.circe.syntax.*
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.parser.decode
+import io.circe.syntax.EncoderOps
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.yeye.frontend.components.layout.BurgerMenu
 import com.yeye.frontend.core.Style
@@ -20,13 +21,19 @@ import com.yeye.frontend.core.Style
   */
 case class User(id: Long, name: String, email: String)
 
+object User {
+  implicit val decoder: io.circe.Decoder[User] = deriveDecoder[User]
+  implicit val encoder: io.circe.Encoder[User] = deriveEncoder[User]
+}
+
 /** Main entry point for the frontend application.
   *
   * This object serves as the entry point for the Scala.js application. It
   * initializes the UI, renders the main application structure, and handles the
   * high-level application flow.
   */
-object Main:
+object Main {
+
   /** Flag to indicate whether to run tests on startup Can be set via URL
     * parameter: ?test=true
     */
@@ -44,7 +51,7 @@ object Main:
     * @param args
     *   Command line arguments (unused)
     */
-  def main(args: Array[String]): Unit =
+  def main(args: Array[String]): Unit = {
     // Initialize styles
     Style.init()
 
@@ -56,6 +63,18 @@ object Main:
 
     val containerNode = dom.document.querySelector("#app")
     render(containerNode, app)
+  }
+
+  /** Custom owner class for managing router lifecycle */
+  class RouterOwner extends L.Owner {
+    override def killSubscriptions(): Unit = {
+      // Clean up any subscriptions when the owner is killed
+      super.killSubscriptions()
+    }
+  }
+
+  /** Global router owner instance */
+  val routerOwner = new RouterOwner()
 
   /** Main application component
     *
@@ -201,3 +220,4 @@ object Main:
       onMountCallback(_ => fetchUsers())
     )
   }
+}

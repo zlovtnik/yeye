@@ -1,5 +1,5 @@
 name := "yeye-frontend"
-scalaVersion := "3.3.1"
+scalaVersion := "3.3.5"
 
 enablePlugins(ScalaJSPlugin)
 
@@ -11,8 +11,9 @@ libraryDependencies ++= Seq(
   "io.circe" %%% "circe-core" % "0.14.6",
   "io.circe" %%% "circe-generic" % "0.14.6",
   "io.circe" %%% "circe-parser" % "0.14.6",
-  "org.scalameta" %%% "munit" % "1.0.0-M10" % Test,
-  "dev.zio" %%% "zio-json" % "0.6.2",
+  "org.typelevel" %%% "cats-core" % "2.10.0",
+  "org.typelevel" %%% "cats-effect" % "3.5.2",
+  "org.scalameta" %%% "munit" % "0.7.29" % Test,
   "com.lihaoyi" %%% "utest" % "0.8.1" % Test
 )
 

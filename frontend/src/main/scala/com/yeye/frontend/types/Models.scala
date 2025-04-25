@@ -27,12 +27,14 @@ case class File(
 )
 
 /** Companion object for File providing JSON encoding/decoding */
-object File:
+object File {
+
   /** Circe decoder for File */
   implicit val decoder: Decoder[File] = deriveDecoder[File]
 
   /** Circe encoder for File */
   implicit val encoder: Encoder[File] = deriveEncoder[File]
+}
 
 /** Represents a user in the system
   *

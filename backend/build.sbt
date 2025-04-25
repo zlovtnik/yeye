@@ -1,5 +1,5 @@
 name := "yeye-backend"
-scalaVersion := "3.3.1"
+scalaVersion := "3.3.5"
 
 resolvers ++= Seq(
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -30,7 +30,14 @@ libraryDependencies ++= Seq(
   "org.scalameta" %% "munit" % "0.7.29" % Test,
   "org.scalameta" %% "munit-scalacheck" % "0.7.29" % Test,
   "com.typesafe" % "config" % "1.4.3",
-  "org.typelevel" %% "cats-mtl" % "1.3.1"
+  "org.typelevel" %% "cats-mtl" % "1.3.1",
+  "org.tpolecat" %% "doobie-core" % "1.0.0-RC4",
+  "org.tpolecat" %% "doobie-postgres" % "1.0.0-RC4",
+  "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC4",
+  "org.tpolecat" %% "doobie-h2" % "1.0.0-RC4" % Test,
+  "com.h2database" % "h2" % "2.2.224" % Test,
+  "org.scalatestplus" %% "mockito-4-11" % "3.2.17.0" % Test,
+  "org.mockito" % "mockito-core" % "5.11.0" % Test
 )
 
 Compile / mainClass := Some("com.yeye.backend.Server")

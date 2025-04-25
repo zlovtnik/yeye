@@ -40,10 +40,10 @@ object DatabaseConfig:
   val dataSource: Resource[IO, HikariDataSource] = Resource.make(IO {
     val config = new HikariConfig()
     config.setJdbcUrl(
-      sys.env.getOrElse("DB_URL", "jdbc:oracle:thin:@//localhost:1521/FREE")
+      sys.env.getOrElse("DB_URL", "jdbc:oracle:thin:@//localhost:1521/FREEPDB1")
     )
-    config.setUsername(sys.env.getOrElse("DB_USER", "system"))
-    config.setPassword(sys.env.getOrElse("DB_PASSWORD", "ora"))
+    config.setUsername(sys.env.getOrElse("DB_USER", "sh"))
+    config.setPassword(sys.env.getOrElse("DB_PASSWORD", "sh"))
     config.setMinimumIdle(2)
     config.setMaximumPoolSize(10)
     config.setConnectionTimeout(30000)

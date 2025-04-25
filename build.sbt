@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "3.3.1"
+ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.yeye"
 
@@ -87,32 +87,23 @@ lazy val frontend = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     name := "yeye-frontend",
-    // Specify Main as the main class to avoid conflicts with test classes
-    Compile / mainClass := Some("com.yeye.frontend.Main"),
+    libraryDependencies ++= Seq(
+      "com.raquo" %%% "laminar" % "16.0.0",
+      "com.raquo" %%% "waypoint" % "7.0.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.8.0",
+      "com.lihaoyi" %%% "upickle" % "3.1.3",
+      "io.circe" %%% "circe-core" % "0.14.6",
+      "io.circe" %%% "circe-generic" % "0.14.6",
+      "io.circe" %%% "circe-parser" % "0.14.6",
+      "org.typelevel" %%% "cats-core" % "2.10.0",
+      "org.typelevel" %%% "cats-effect" % "3.5.2",
+      "org.scalameta" %%% "munit" % "0.7.29" % Test,
+      "com.lihaoyi" %%% "utest" % "0.8.1" % Test
+    ),
     scalaJSUseMainModuleInitializer := true,
-
-    // Define how to run frontend tests as part of the standard test task
-    Test / test := {
-      import scala.sys.process._
-
-      // Compile first - important: we need to use fastOptJS, not fastLinkJS
-      (Compile / fastOptJS).value
-
-      // Run the script in headless mode for automation
-      println("Running frontend browser tests in headless mode...")
-      val scriptPath = baseDirectory.value / "run-tests.sh"
-
-      // Make sure the script is executable
-      s"chmod +x ${scriptPath}".!
-
-      // Run with headless flag
-      val exitCode = s"${scriptPath} --headless".!
-
-      if (exitCode != 0) {
-        throw new Exception(s"Frontend tests failed with exit code $exitCode")
-      } else {
-        println("✅ Frontend tests passed successfully!")
-      }
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
+      _.withModuleKind(ModuleKind.ESModule)
+        .withSourceMap(true)
     }
   )
   .dependsOn(shared)

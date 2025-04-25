@@ -5,6 +5,9 @@ import com.yeye.frontend.api.ApiClient
 import com.yeye.frontend.types.{CreateUserRequest, User}
 import io.circe.parser.decode
 import org.scalajs.dom
+import cats.data.{Validated, NonEmptyList}
+import cats.implicits.*
+import com.yeye.frontend.utils.FormValidation
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object UserForm {
@@ -17,19 +20,44 @@ object UserForm {
     val nameVar = Var("")
     val emailVar = Var("")
     val ageVar = Var("")
+    val validationErrors = Var(List.empty[String])
 
     val $name = nameVar.signal
     val $email = emailVar.signal
     val $age = ageVar.signal
 
-    val $isValid =
+    // Create a derived signal that validates the form
+    val $validationResult =
       Signal.combine($name, $email, $age).map { case (name, email, age) =>
-        name.nonEmpty && email.nonEmpty && age.nonEmpty && age.forall(_.isDigit)
+        val nameValidation = FormValidation.notEmpty("Name", name)
+        val emailValidation = FormValidation.validEmail("Email", email)
+        val ageValidation = FormValidation.positiveInt("Age", age)
+
+        // Use Cats applicative to combine validations
+        (nameValidation, emailValidation, ageValidation).tupled
       }
 
     div(
       cls := "user-form",
       h2("Create User"),
+
+      // Update validation errors based on validation result
+      $validationResult --> { validation =>
+        validation match {
+          case Validated.Invalid(errs) =>
+            validationErrors.set(FormValidation.formatErrors(errs))
+          case Validated.Valid(_) =>
+            validationErrors.set(List.empty)
+        }
+      },
+
+      // Display validation errors
+      div(
+        cls := "validation-errors",
+        children <-- validationErrors.signal.map { errors =>
+          errors.map(error => div(cls := "error", error))
+        }
+      ),
       div(
         cls := "form-group",
         label("Name:"),
@@ -59,19 +87,33 @@ object UserForm {
       ),
       button(
         "Create",
-        disabled <-- $isValid.map(!_),
+        disabled <-- $validationResult.map(!_.isValid),
         onClick --> { _ =>
-          val request = CreateUserRequest(
-            name = nameVar.now(),
-            email = emailVar.now(),
-            age = ageVar.now().toInt
-          )
+          val name = nameVar.now()
+          val email = emailVar.now()
+          val age = ageVar.now()
 
-          ApiClient.createUser(request).foreach { user =>
-            props.usersVar.update(_ :+ user)
-            nameVar.set("")
-            emailVar.set("")
-            ageVar.set("")
+          val nameValidation = FormValidation.notEmpty("Name", name)
+          val emailValidation = FormValidation.validEmail("Email", email)
+          val ageValidation = FormValidation.positiveInt("Age", age)
+
+          val validation =
+            (nameValidation, emailValidation, ageValidation).tupled
+
+          validation match {
+            case Validated.Valid((validName, validEmail, validAge)) =>
+              val request = CreateUserRequest(validName, validEmail, validAge)
+              ApiClient.createUser(request).foreach { user =>
+                props.usersVar.update(_ :+ user)
+                nameVar.set("")
+                emailVar.set("")
+                ageVar.set("")
+                props.errorVar.set(None)
+              }
+            case Validated.Invalid(errs) =>
+              props.errorVar.set(
+                Some(FormValidation.formatErrors(errs).mkString(", "))
+              )
           }
         }
       )
